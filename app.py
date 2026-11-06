@@ -197,6 +197,8 @@ def admin_dashboard():
     )
 
 # 1. Course Create, Edit, Delete
+
+# adding new course 
 @app.route('/admin/course/new', methods=['GET', 'POST'])
 def create_course():
     if request.method == 'POST':
@@ -217,6 +219,8 @@ def create_course():
 
     return render_template('course_form.html', course=None)
 
+
+# editing existing course
 @app.route('/admin/course/<int:id>/edit', methods=['GET', 'POST'])
 def edit_course(id):
     course = Course.query.get_or_404(id)
@@ -232,7 +236,7 @@ def edit_course(id):
     return render_template('course_form.html', course=course)
 
 
-
+# deleting existing course
 @app.route('/admin/course/<int:id>/delete', methods=['POST'])
 def delete_course(id):
     course = Course.query.get_or_404(id)
@@ -244,7 +248,11 @@ def delete_course(id):
     flash('Course deleted successfully.', 'info')
     return redirect(url_for('admin_dashboard'))
 
+
 # 2. Examination Create, Edit, Delete & Status Control
+
+
+# create new examination
 @app.route('/admin/exam/new', methods=['GET', 'POST'])
 def create_exam():
     courses = Course.query.filter_by(status='Active').all()
@@ -263,11 +271,13 @@ def create_exam():
         )
         db.session.add(exam)
         db.session.commit()
-        flash('Examination create ho gaya! Ab aap iske Rubrics add kar sakte hain.', 'success')
+        flash('Examination was created successfully.', 'success')
         return redirect(url_for('admin_dashboard'))
 
     return render_template('exam_form.html', exam=None, courses=courses)
 
+
+# edit existing examination
 @app.route('/admin/exam/<int:id>/edit', methods=['GET', 'POST'])
 def edit_exam(id):
     exam = Examination.query.get_or_404(id)
@@ -283,12 +293,15 @@ def edit_exam(id):
         exam.slot_booking_start = parse_datetime(request.form.get('slot_booking_start'))
         exam.slot_booking_end = parse_datetime(request.form.get('slot_booking_end'))
         exam.status = request.form.get('status')
+        
         db.session.commit()
-        flash('Examination details aur timelines update ho gayi!', 'success')
+        flash('Examination details and timelines updated successfully.', 'success')
         return redirect(url_for('admin_dashboard'))
 
     return render_template('exam_form.html', exam=exam, courses=courses)
 
+
+# status update for examination
 @app.route('/admin/exam/<int:id>/status', methods=['POST'])
 def update_exam_status(id):
     exam = Examination.query.get_or_404(id)
@@ -296,21 +309,26 @@ def update_exam_status(id):
     if new_status in ['Draft', 'Slot Creation', 'Booking Open', 'Closed', 'Completed']:
         exam.status = new_status
         db.session.commit()
-        flash(f'Exam "{exam.name}" ka status ab "{new_status}" kar diya gaya hai.', 'success')
+        flash(f'Status of examination "{exam.name}" updated to "{new_status}".', 'success')
     return redirect(url_for('admin_dashboard'))
 
+
+# delete existing examination
 @app.route('/admin/exam/<int:id>/delete', methods=['POST'])
 def delete_exam(id):
     exam = Examination.query.get_or_404(id)
     if exam.slots:
-        flash('Is exam ke slots ban chuke hain, isliye delete nahi kiya ja sakta.', 'warning')
+        flash('Slots already exist for this examination, so it cannot be deleted.', 'warning')
         return redirect(url_for('admin_dashboard'))
     db.session.delete(exam)
     db.session.commit()
-    flash('Examination delete kar diya gaya.', 'info')
+    flash('Examination deleted successfully.', 'info')
     return redirect(url_for('admin_dashboard'))
 
+
 # 3. Manage Examination Rubrics
+
+# rubric criteria 
 @app.route('/admin/exam/<int:exam_id>/rubrics', methods=['GET', 'POST'])
 def manage_rubrics(exam_id):
     exam = Examination.query.get_or_404(exam_id)
@@ -327,21 +345,27 @@ def manage_rubrics(exam_id):
         )
         db.session.add(rubric)
         db.session.commit()
-        flash('Rubric criterion add ho gaya!', 'success')
+        flash('Rubric criterion added successfully.', 'success')
         return redirect(url_for('manage_rubrics', exam_id=exam.id))
 
     return render_template('manage_rubrics.html', exam=exam)
 
+
+# delete rubric criterion
 @app.route('/admin/rubric/<int:id>/delete', methods=['POST'])
 def delete_rubric(id):
     rubric = Rubric.query.get_or_404(id)
     exam_id = rubric.exam_id
     db.session.delete(rubric)
     db.session.commit()
-    flash('Rubric criterion hata diya gaya.', 'info')
+    flash('Rubric criterion deleted successfully.', 'info')
     return redirect(url_for('manage_rubrics', exam_id=exam_id))
 
-# 4. Add, Approve or Deactivate Examiners
+
+
+# 4. Adding, Approve or Deactivate Examiners
+
+# adding new examiner by admin
 @app.route('/admin/examiner/add', methods=['POST'])
 def admin_add_examiner():
     name = request.form.get('name').strip()
@@ -349,7 +373,7 @@ def admin_add_examiner():
     password = request.form.get('password')
 
     if User.query.filter_by(username=username).first():
-        flash('Username pehle se maujood hai!', 'danger')
+        flash('Username already exists!', 'danger')
         return redirect(url_for('admin_dashboard'))
 
     examiner = User(
@@ -361,9 +385,11 @@ def admin_add_examiner():
     )
     db.session.add(examiner)
     db.session.commit()
-    flash(f'Examiner {name} ko add aur approve kar diya gaya!', 'success')
+    flash(f'Examiner {name} added successfully.', 'success')
     return redirect(url_for('admin_dashboard'))
 
+
+# approving or deactivating existing examiner by admin
 @app.route('/admin/examiner/<int:id>/toggle', methods=['POST'])
 def toggle_examiner(id):
     examiner = User.query.get_or_404(id)
@@ -371,58 +397,63 @@ def toggle_examiner(id):
         examiner.is_approved = not examiner.is_approved
         db.session.commit()
         status_text = "Approved" if examiner.is_approved else "Deactivated"
-        flash(f'Examiner {examiner.name} ka status {status_text} kar diya gaya.', 'info')
+        flash(f'Examiner {examiner.name} is now {status_text}.', 'info')
     return redirect(url_for('admin_dashboard'))
 
+
+
 # 5. Reschedule Booking & Reassign Examiner
+
+
 @app.route('/admin/booking/<int:id>/reschedule', methods=['GET', 'POST'])
 def reschedule_booking(id):
     booking = Booking.query.get_or_404(id)
     current_slot = booking.slot
-    # Usi exam ke baaki slots
-    available_slots = Slot.query.filter_by(exam_id=current_slot.exam_id).all()
-    approved_examiners = User.query.filter_by(role='examiner', is_approved=True).all()
 
     if request.method == 'POST':
-        action_type = request.form.get('action_type')
+        action = request.form.get('action_type')
 
-        if action_type == 'reschedule_slot':
-            new_slot_id = int(request.form.get('new_slot_id'))
-            new_slot = Slot.query.get_or_404(new_slot_id)
-
-            if new_slot.id != current_slot.id:
-                if new_slot.available_seats <= 0:
-                    flash('Selected slot mein seats khali nahi hain!', 'danger')
-                    return redirect(url_for('reschedule_booking', id=booking.id))
-
-                # Purane slot ki seat wapas badhayein
-                current_slot.available_seats += 1
-                if current_slot.status == 'Full':
-                    current_slot.status = 'Available'
-
-                # Naye slot mein assign karein
-                booking.slot_id = new_slot.id
-                new_slot.available_seats -= 1
-                if new_slot.available_seats == 0:
-                    new_slot.status = 'Full'
-
-                db.session.commit()
-                flash('Student ki booking naye slot mein reschedule ho gayi!', 'success')
-                return redirect(url_for('admin_dashboard'))
-
-        elif action_type == 'change_examiner':
-            new_examiner_id = int(request.form.get('new_examiner_id'))
-            current_slot.examiner_id = new_examiner_id
+        # first: changing the examiner for the slot
+        if action == 'change_examiner':
+            current_slot.examiner_id = int(request.form.get('new_examiner_id'))
             db.session.commit()
-            flash('Slot ka assigned examiner successfully change kar diya gaya!', 'success')
+            flash('Examiner successfully changed!', 'success')
             return redirect(url_for('admin_dashboard'))
 
-    return render_template(
-        'reschedule_booking.html',
-        booking=booking,
-        available_slots=available_slots,
-        approved_examiners=approved_examiners
-    )
+        # second: rescheduling the student to a new slot
+        if action == 'reschedule_slot':
+            new_slot = Slot.query.get_or_404(int(request.form.get('new_slot_id')))
+
+            # agar naye slot mein seat nahi hai
+            if new_slot.available_seats <= 0:
+                flash('Slot is full!', 'danger')
+                return redirect(url_for('admin_dashboard'))
+
+            # to ek seat current slot me add karo or uska status update karo
+            current_slot.available_seats += 1
+            current_slot.status = 'Available'
+
+            # student ko naye slot mein bhejo
+            booking.slot_id = new_slot.id
+
+            # naye slot ki ek seat kam karo
+            new_slot.available_seats -= 1
+            if new_slot.available_seats == 0:
+                new_slot.status = 'Full'
+
+            db.session.commit()
+            flash('Student successfully rescheduled to a new slot!', 'success')
+            return redirect(url_for('admin_dashboard'))
+
+    # GET request: dropdown ke liye data nikalna
+    available_slots = Slot.query.filter_by(exam_id=current_slot.exam_id).all()
+    approved_examiners = User.query.filter_by(role='examiner', is_approved=True).all()
+    
+    return render_template('reschedule.html', 
+                           booking=booking, 
+                           slots=available_slots, 
+                           examiners=approved_examiners
+                           )
 
 @app.route('/examiner/dashboard')
 def examiner_dashboard():
