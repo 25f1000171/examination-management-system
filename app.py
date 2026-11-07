@@ -455,14 +455,195 @@ def reschedule_booking(id):
                            examiners=approved_examiners
                            )
 
+
+
+
+# ==================== EXAMINER ROUTES ====================
+
+
+# examiner dashbord
 @app.route('/examiner/dashboard')
 def examiner_dashboard():
-    return "<h1>Examiner Dashboard Connected!</h1>"
+    slots = Slot.query.filter_by(examiner_id=current_user.id).order_by(Slot.date.asc(), Slot.start_time.asc()).all()
+    return render_template('examiner_dashboard.html', slots=slots)
 
+
+# slot managing route for examiner
+@app.route('/examiner/slot/<int:id>/manage')
+def manage_slot(id):
+    slot = Slot.query.get_or_404(id)
+    if slot.examiner_id != current_user.id:
+        flash('You are not the owner of this slot.', 'danger')
+        return redirect(url_for('examiner_dashboard'))
+    
+    # slot mein booked sabhi students ko nikalna
+    bookings = Booking.query.filter_by(slot_id=id).all()
+    return render_template('slot_form.html', slot=slot, bookings=bookings)
+
+
+# evaluation route for examiner to evaluate student
+@app.route('/examiner/evaluate/<int:booking_id>', methods=['GET', 'POST'])
+def evaluate_student(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    slot = booking.slot
+    
+    if slot.examiner_id != current_user.id:
+        flash('You are not the owner of this slot.', 'danger')
+        return redirect(url_for('examiner_dashboard'))
+        
+    # exam marking scheme nikalna
+    rubrics = Rubric.query.filter_by(exam_id=slot.exam_id).all()
+    
+    if request.method == 'POST':
+        total_score = 0
+        remarks = request.form.get('remarks', '')
+        
+        # har rubric ka score form se nikal kar total karna
+        for rubric in rubrics:
+            score = request.form.get(f'rubric_{rubric.id}', type=float)
+            if score is not None:
+                total_score += score
+        
+        # pehle se evaluation bani hui h ya nayi banani hai
+        evaluation = Evaluation.query.filter_by(booking_id=booking.id).first()
+        if not evaluation:
+            evaluation = Evaluation(booking_id=booking.id, examiner_id=current_user.id)
+            db.session.add(evaluation)
+        
+        evaluation.marks_obtained = total_score
+        evaluation.remarks = remarks
+        booking.status = 'Evaluated'
+        
+        db.session.commit()
+        flash('Evaluation saved successfully!', 'success')
+        return redirect(url_for('manage_slot', id=slot.id))
+        
+    return render_template('evaluate_student.html', booking=booking, rubrics=rubrics)
+
+
+
+# ==================== STUDENT ROUTES ====================
+
+
+# student dashboard route
 @app.route('/student/dashboard')
 def student_dashboard():
-    return "<h1>Student Dashboard Connected!</h1>"
+    q = request.args.get('q', '').strip()
+
+    my_bookings = Booking.query.filter_by(student_id=current_user.id).all()
+    booked_slot_ids = [b.slot_id for b in my_bookings]
+    
+    if q:
+        available_slots = Slot.query.join(Examination).filter(
+            Slot.available_seats > 0, 
+            Examination.name.ilike(f'%{q}%')
+        ).filter(~Slot.id.in_(booked_slot_ids) if booked_slot_ids else True).order_by(Slot.date.asc()).all()
+    else:
+        available_slots = Slot.query.filter(Slot.available_seats > 0).filter(~Slot.id.in_(booked_slot_ids) if booked_slot_ids else True).order_by(Slot.date.asc()).all()
+    
+    return render_template('student_dashboard.html', bookings=my_bookings, available_slots=available_slots)
+
+
+# student slot booking route
+@app.route('/student/slot/<int:slot_id>/book', methods=['POST'])
+def book_slot(slot_id):
+    slot = Slot.query.get_or_404(slot_id)
+    
+    # agar slot full h ya already booked h
+    if slot.available_seats <= 0:
+        flash('This slot is full!', 'danger')
+        return redirect(url_for('student_dashboard'))
+    
+    existing_booking = Booking.query.filter_by(student_id=current_user.id, slot_id=slot_id).first()
+    if existing_booking:
+        flash('You have already booked this slot.', 'warning')
+        return redirect(url_for('student_dashboard'))
+    
+    # booking create karna
+    new_booking = Booking(student_id=current_user.id, slot_id=slot_id)
+    db.session.add(new_booking)
+    
+    # available seats update karna
+    slot.available_seats -= 1
+    if slot.available_seats == 0:
+        slot.status = 'Full'
+    
+    db.session.commit()
+    flash('Slot booked successfully!', 'success')
+    return redirect(url_for('student_dashboard'))
+
+
+# student slot cancellation route
+@app.route('/student/booking/<int:booking_id>/cancel', methods=['POST'])
+def cancel_booking(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    
+    # agar student ka booking h to hi cancel kar sakta h
+    if booking.student_id != current_user.id:
+        flash('You are not authorized to cancel this booking.', 'danger')
+        return redirect(url_for('student_dashboard'))
+    
+    slot = booking.slot
+
+    # deadline checking
+    from datetime import datetime
+    if datetime.now() >= slot.date:
+        flash('The deadline to cancel this booking has passed.', 'danger')
+        return redirect(url_for('student_dashboard'))
+        
+    if booking.status == 'Evaluated':
+        flash('The exam has already been evaluated; you can no longer cancel this booking.', 'warning')
+        return redirect(url_for('student_dashboard'))
+    
+    # available seats update karna
+    slot.available_seats += 1
+    if slot.status == 'Full':
+        slot.status = 'Available'
+    
+    db.session.delete(booking)
+    db.session.commit()
+    flash('Booking cancelled successfully.', 'info')
+    return redirect(url_for('student_dashboard'))
+
+
+# edit profile route
+@app.route('/student/profile', methods=['GET', 'POST'])
+def edit_profile():
+    if request.method == 'POST':
+        new_name = request.form.get('name')
+        new_username = request.form.get('username')
+        
+        existing_user = User.query.filter_by(username=new_username).first()
+        if existing_user and existing_user.id != current_user.id:
+            flash('Username already exists.', 'danger')
+        else:
+            current_user.name = new_name
+            current_user.username = new_username
+            db.session.commit()
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('student_dashboard'))
+            
+    return render_template('edit_profile.html')
+
+
+# student result viewing route
+@app.route('/student/result/<int:booking_id>')
+def view_result(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+
+    # security check
+    if booking.student_id != current_user.id:
+        flash('You are not authorized', 'danger')
+        return redirect(url_for('student_dashboard'))
+
+    if booking.status != 'Evaluated':
+        flash('Your result is not declared.', 'warning')
+        return redirect(url_for('student_dashboard'))
+
+    evaluation = Evaluation.query.filter_by(booking_id=booking.id).first()
+    return render_template('view_result.html', booking=booking, evaluation=evaluation)
+
 
 if __name__ == '__main__':
-    init_db()  # App run hote hi DB aur Admin automatically ban jayenge
+    init_db()
     app.run(debug=True)
