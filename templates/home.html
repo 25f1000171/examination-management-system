@@ -3,11 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prime</title>
+    <link href="static/css/style.css" rel="stylesheet">
+    <title>Korrupt Testing Agency</title>
 </head>
-<body>
-    <h1>Welcome to the Prime Examination Management System</h1>
-    <p>This is the home page.</p>
     
+<body>
+ 
+    <nav class="navbar">
+        <a href="{{ url_for('home') }}" class="navbar-brand">Korrupt Testing Agency</a>
+        <div class="nav-links">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('login') }}" class="nav-btn">Go to Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="nav-btn-danger">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}" class="nav-btn">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    
+    <div class="hero-section">
+        <h1 class="hero-title">Welcome to the Korrupt Testing Agency</h1>
+        <p class="hero-subtitle">
+            Korrupt Testing Agency (KTA) to improve equity and quality in education by administering research based valid, reliable, efficient, transparent, fair and international level assessments.
+        </p>
+        
+        {% if not current_user.is_authenticated %}
+            <div class="hero-buttons">
+                <a href="{{ url_for('login') }}" class="btn-custom btn-primary-custom">Login to Portal</a>
+                <a href="{{ url_for('register') }}" class="btn-custom btn-outline-custom">Student / Examiner Sign Up</a>
+            </div>
+        {% endif %}
+    </div>
+
+    
+    <div class="about-section"> 
+        <h3 class="about-title">About KTA</h3> 
+        <p class="about-text">Korrupt Testing Agency (KTA) has been established as a premier, specialist, autonomous and self-sustained testing organization to conduct entrance examinations for admission/fellowship in higher educational institutions.</p>
+        <p class="about-text">To assess competence of candidates for admissions has always been a challenge in terms of matching with research based international standards, efficiency, transparency and error free delivery. The Korrupt Testing Agency is entrusted to address all such issues using best in every field, from test preparation, to test delivery and to test marking.</p>
+    </div>
+
+    <footer class="home-footer">
+        <p>© 2026 Korrupt Testing Agency. All rights reserved.</p>
+    </footer>
+
 </body>
 </html>

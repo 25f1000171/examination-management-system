@@ -1,0 +1,144 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+.navbar {
+    background-color: #212529;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-brand {
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.nav-links a {
+    color: #ffffff;
+    text-decoration: none;
+    margin-left: 1.5rem;
+    font-size: 1rem;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: #0d6efd;
+}
+
+.nav-btn {
+    background-color: #0d6efd;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+}
+
+.nav-btn:hover {
+    background-color: #0b5ed7;
+    color: white;
+}
+
+.nav-btn-danger {
+    background-color: #dc3545;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+}
+
+.hero-section {
+    background-color: #ffffff;
+    padding: 4rem 3rem;
+    margin: 3rem auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    max-width: 900px;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    color: #6c757d;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.hero-buttons { 
+    margin-top: 2rem; 
+}
+
+.btn-custom {
+    display: inline-block;
+    padding: 0.7rem 1.8rem;
+    font-size: 1rem;
+    text-decoration: none;
+    border-radius: 5px;
+    margin: 0 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-primary-custom {
+    background-color: #0d6efd;
+    color: #ffffff;
+    border: 2px solid #0d6efd;
+}
+
+.btn-primary-custom:hover { 
+    background-color: #0b5ed7; 
+}
+
+.btn-outline-custom {
+    background-color: transparent;
+    color: #0d6efd;
+    border: 2px solid #0d6efd;
+}
+
+.btn-outline-custom:hover {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+.about-section {
+    max-width: 900px;
+    margin: 0 auto 3rem auto; 
+    padding: 0 1.5rem;
+    text-align: center; 
+}
+
+.about-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #212529;
+    margin-bottom: 1rem;
+}
+
+.about-text {
+    color: #6c757d;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.home-footer {
+    text-align: center;
+    color: #a3a3a3;
+    margin-top: 4rem;
+    padding: 2rem 0;
+    border-top: 1px solid #eaeaea;
+}

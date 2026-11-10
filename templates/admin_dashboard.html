@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">Admin Control Panel</h2>
+    <div>
+        <a href="{{ url_for('create_course') }}" class="btn btn-primary btn-sm me-2">+ Add Course</a>
+        <a href="{{ url_for('create_exam') }}" class="btn btn-success btn-sm">+ Create Examination</a>
+    </div>
+</div>
+
+<!-- Summary Counter Cards -->
+<div class="row g-3 mb-4 text-center">
+    <div class="col-md-2">
+        <div class="card shadow-sm border-0 bg-primary text-white p-3">
+            <h3 class="fw-bold mb-0">{{ stats.courses }}</h3>
+            <small>Courses</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card shadow-sm border-0 bg-dark text-white p-3">
+            <h3 class="fw-bold mb-0">{{ stats.exams }}</h3>
+            <small>Examinations</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card shadow-sm border-0 bg-info text-dark p-3">
+            <h3 class="fw-bold mb-0">{{ stats.examiners }}</h3>
+            <small>Examiners</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card shadow-sm border-0 bg-secondary text-white p-3">
+            <h3 class="fw-bold mb-0">{{ stats.students }}</h3>
+            <small>Students</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card shadow-sm border-0 bg-warning text-dark p-3">
+            <h3 class="fw-bold mb-0">{{ stats.slots }}</h3>
+            <small>Exam Slots</small>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card shadow-sm border-0 bg-success text-white p-3">
+            <h3 class="fw-bold mb-0">{{ stats.bookings }}</h3>
+            <small>Bookings</small>
+        </div>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('admin_dashboard') }}" class="row g-2">
+            <div class="col-md-9">
+                <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search Courses, Examinations, Examiners, Students or Bookings by Name or ID...">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark w-100">Search</button>
+                {% if q %}
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Reset</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. Courses Management -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+        <span>Courses ({{ courses|length }})</span>
+        <a href="{{ url_for('create_course') }}" class="btn btn-outline-primary btn-sm">+ New Course</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Code</th>
+                    <th>Course Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courses %}
+                <tr>
+                    <td>#{{ c.id }}</td>
+                    <td><span class="badge bg-secondary">{{ c.course_code }}</span></td>
+                    <td>
+                        <strong>{{ c.name }}</strong>
+                        <div class="text-muted small">{{ c.description or '' }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if c.status == 'Active' else 'secondary' }}">{{ c.status }}</span>
+                    </td>
+                    <td class="d-flex gap-1">
+                        <a href="{{ url_for('edit_course', id=c.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
+                        <form method="POST" action="{{ url_for('delete_course', id=c.id) }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No courses found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 4. Examinations, Timelines & Slot Opening Control -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+        <span>Examinations & Timelines ({{ exams|length }})</span>
+        <a href="{{ url_for('create_exam') }}" class="btn btn-outline-success btn-sm">+ New Examination</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Exam & Course</th>
+                    <th>Type & Marks</th>
+                    <th>Slot Creation Window</th>
+                    <th>Student Booking Window</th>
+                    <th>Stage / Status Control</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in exams %}
+                <tr>
+                    <td>#{{ e.id }}</td>
+                    <td>
+                        <strong>{{ e.name }}</strong>
+                        <div class="small text-muted">{{ e.course.course_code }} - {{ e.course.name }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-info text-dark">{{ e.exam_type }}</span>
+                        <div class="small">{{ e.max_marks }} Marks | {{ e.duration }} mins</div>
+                    </td>
+                    <td class="small">
+                        {{ e.slot_creation_start.strftime('%d %b %Y, %H:%M') }}<br>
+                        to {{ e.slot_creation_end.strftime('%d %b %Y, %H:%M') }}
+                    </td>
+                    <td class="small">
+                        {{ e.slot_booking_start.strftime('%d %b %Y, %H:%M') }}<br>
+                        to {{ e.slot_booking_end.strftime('%d %b %Y, %H:%M') }}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('update_exam_status', id=e.id) }}" class="d-flex gap-1">
+                            <select name="status" class="form-select form-select-sm">
+                                {% for st in ['Draft', 'Slot Creation', 'Booking Open', 'Closed', 'Completed'] %}
+                                    <option value="{{ st }}" {% if e.status == st %}selected{% endif %}>{{ st }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-dark">Set</button>
+                        </form>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('create_slot', exam_id=e.id) }}" class="btn btn-sm btn-info text-dark">Create Slot</a>
+                            <a href="{{ url_for('manage_rubrics', exam_id=e.id) }}" class="btn btn-sm btn-warning">Rubrics ({{ e.rubrics|length }})</a>
+                            <a href="{{ url_for('edit_exam', id=e.id) }}" class="btn btn-sm btn-outline-dark">Edit</a>
+                            <form method="POST" action="{{ url_for('delete_exam', id=e.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Del</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-3">No examinations created yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 5. Examiner Management & Quick Add -->
+<div class="row g-4 mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-bold">Examiners Approval & Status ({{ examiners|length }})</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ex in examiners %}
+                        <tr>
+                            <td>#{{ ex.id }}</td>
+                            <td>{{ ex.name }}</td>
+                            <td><code>{{ ex.username }}</code></td>
+                            <td>
+                                {% if ex.is_approved %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending / Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('toggle_examiner', id=ex.id) }}">
+                                    {% if ex.is_approved %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No examiners found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-bold">Add Examiner Directly</div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin_add_examiner') }}">
+                    <div class="mb-2">
+                        <label class="form-label small">Full Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Username</label>
+                        <input type="text" name="username" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Password</label>
+                        <input type="password" name="password" class="form-control form-control-sm" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Add & Approve Examiner</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 6. All Examination Slots -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold">All Examination Slots ({{ slots|length }})</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Slot ID</th>
+                    <th>Examination</th>
+                    <th>Examiner</th>
+                    <th>Date & Time</th>
+                    <th>Seats (Available / Total)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in slots %}
+                <tr>
+                    <td>#{{ s.id }}</td>
+                    <td>{{ s.examination.name }}</td>
+                    <td>{{ s.examiner.name }}</td>
+                    <td>{{ s.date.strftime('%d %b %Y') }} | {{ s.start_time.strftime('%H:%M') }} - {{ s.end_time.strftime('%H:%M') }}</td>
+                    <td>{{ s.available_seats }} / {{ s.capacity }}</td>
+                    <td><span class="badge bg-{{ 'success' if s.status == 'Available' else 'secondary' }}">{{ s.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-3">No slots created yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 7. All Student Bookings & Reschedule Control -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold">Student Bookings ({{ bookings|length }})</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Student</th>
+                    <th>Examination</th>
+                    <th>Assigned Examiner</th>
+                    <th>Slot Date & Time</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                <tr>
+                    <td>#{{ b.id }}</td>
+                    <td>{{ b.student.name }} (ID: #{{ b.student.id }})</td>
+                    <td>{{ b.slot.examination.name }}</td>
+                    <td>{{ b.slot.examiner.name }}</td>
+                    <td>{{ b.slot.date.strftime('%d %b %Y') }} ({{ b.slot.start_time.strftime('%H:%M') }})</td>
+                    <td><span class="badge bg-primary">{{ b.status }}</span></td>
+                    <td>
+                        <a href="{{ url_for('reschedule_booking', id=b.id) }}" class="btn btn-sm btn-outline-primary">Reschedule / Change Examiner</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-3">No student bookings found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 8. Registered Students List -->
+<div class="card shadow-sm mb-5">
+    <div class="card-header bg-white fw-bold">Registered Students ({{ students|length }})</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Total Bookings</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for st in students %}
+                <tr>
+                    <td>#{{ st.id }}</td>
+                    <td>{{ st.name }}</td>
+                    <td><code>{{ st.username }}</code></td>
+                    <td>{{ st.bookings|length }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-3">No students registered yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white fw-bold">
+                Manage Booking #{{ booking.id }} — {{ booking.student.name }}
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Examination:</strong> {{ booking.slot.examination.name }}</p>
+                <p class="mb-1"><strong>Current Slot:</strong> #{{ booking.slot.id }} | {{ booking.slot.date.strftime('%d %b %Y') }} ({{ booking.slot.start_time.strftime('%H:%M') }} - {{ booking.slot.end_time.strftime('%H:%M') }})</p>
+                <p class="mb-3"><strong>Current Assigned Examiner:</strong> {{ booking.slot.examiner.name }}</p>
+
+                <hr>
+
+                <!-- Form 1: Reschedule Student to Another Slot -->
+                <form method="POST" class="mb-4">
+                    <input type="hidden" name="action_type" value="reschedule_slot">
+                    <h6 class="fw-bold">Option 1: Reschedule Booking to Another Slot</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Select New Slot</label>
+                        <select name="new_slot_id" class="form-select" required>
+                            {% for s in available_slots %}
+                                <option value="{{ s.id }}" {% if s.id == booking.slot_id %}selected{% endif %}>
+                                    Slot #{{ s.id }} | {{ s.date.strftime('%d %b %Y') }} ({{ s.start_time.strftime('%H:%M') }}-{{ s.end_time.strftime('%H:%M') }}) — Examiner: {{ s.examiner.name }} (Seats: {{ s.available_seats }}/{{ s.capacity }})
+                                </option>
+                            {% endfor %}
+                            {% for ex in examiners %}
+                                <option value="{{ ex.id }}">{{ ex.name }} ({{ ex.username }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Reschedule Student Slot</button>
+                </form>
+
+                <hr>
+
+                <!-- Form 2: Reassign Examiner for Current Slot -->
+                <form method="POST">
+                    <input type="hidden" name="action_type" value="change_examiner">
+                    <h6 class="fw-bold">Option 2: Change Assigned Examiner </h6>
+                    <div class="mb-3">
+                        <label class="form-label">Select New Examiner for Slot #{{ booking.slot.id }}</label>
+                        <select name="new_examiner_id" class="form-select" required>
+                            {% for ex in approved_examiners %}
+                                <option value="{{ ex.id }}" {% if ex.id == booking.slot.examiner_id %}selected{% endif %}>
+                                    {{ ex.name }} ({{ ex.username }})
+                                </option>
+                            {% endfor %}
+                            {% for s in slots %}
+                                <option value="{{ s.id }}">{{ s.date.strftime('%d %b %Y') }} | {{ s.start_time.strftime('%H:%M') }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Change Assigned Examiner</button>
+                </form>
+            </div>
+            <div class="card-footer bg-white">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">Back to Admin Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

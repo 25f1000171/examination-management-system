@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Examiner Dashboard{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold">Welcome, {{ current_user.name }}</h2>
+        <p class="text-muted">Examiner Control Panel</p>
+    </div>
+</div>
+
+<!-- Active Examinations available for slot creation -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold">Active Examinations (Create Slots Here)</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Exam Name</th>
+                        <th>Course</th>
+                        <th>Slot Creation Window</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exam in active_exams %}
+                    <tr>
+                        <td><strong>{{ exam.name }}</strong></td>
+                        <td>{{ exam.course.course_code }} - {{ exam.course.name }}</td>
+                        <td>
+                            <small class="text-muted">
+                                {{ exam.slot_creation_start.strftime('%d %b %Y, %H:%M') }} to 
+                                {{ exam.slot_creation_end.strftime('%d %b %Y, %H:%M') }}
+                            </small>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('examiner_create_slot', exam_id=exam.id) }}" class="btn btn-sm btn-success">Create Slot</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No active exams available for slot creation right now.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Assigned Slots & Management -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold">My Created Slots ({{ slots|length }})</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Slot ID</th>
+                        <th>Date & Time</th>
+                        <th>Exam Name</th>
+                        <th>Seats (Available / Total)</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in slots %}
+                    <tr>
+                        <td>#{{ s.id }}</td>
+                        <td>{{ s.date.strftime('%d %b %Y') }} | {{ s.start_time.strftime('%H:%M') }} - {{ s.end_time.strftime('%H:%M') }}</td>
+                        <td>{{ s.examination.name }}</td>
+                        <td>{{ s.available_seats }} / {{ s.capacity }}</td>
+                        <td><span class="badge bg-{{ 'success' if s.status == 'Available' else 'secondary' }}">{{ s.status }}</span></td>
+                        <td class="d-flex gap-1">
+                            <a href="{{ url_for('manage_slot', id=s.id) }}" class="btn btn-sm btn-primary">View Students</a>
+                            <form method="POST" action="{{ url_for('examiner_delete_slot', slot_id=s.id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">You have not created any slots yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

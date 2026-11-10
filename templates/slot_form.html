@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Manage Slot{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Manage Slot: {{ slot.examination.name }}</h2>
+    <a href="{{ url_for('examiner_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <strong>Date:</strong> {{ slot.date.strftime('%d %b %Y') }} | 
+        <strong>Time:</strong> {{ slot.start_time.strftime('%I:%M %p') }} - {{ slot.end_time.strftime('%I:%M %p') }}
+    </div>
+    <div class="card-body">
+        <h5>Booked Students</h5>
+        <table class="table table-bordered mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                <tr>
+                    <td>{{ b.student.id }}</td>
+                    <td>{{ b.student.name }}</td>
+                    <td>
+                        {% if b.status == 'Evaluated' %}
+                            <span class="badge bg-success">Evaluated</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('evaluate_student', booking_id=b.id) }}" class="btn btn-sm btn-outline-primary">
+                            {% if b.status == 'Evaluated' %}Edit Marks{% else %}Evaluate{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center">No students booked for this slot.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
