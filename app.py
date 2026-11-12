@@ -356,6 +356,48 @@ def create_slot(exam_id):
         
     return render_template('create_slot.html', exam=exam, examiners=examiners)
 
+
+# admin route for editing an existing slot
+@app.route('/admin/slot/<int:slot_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_slot(slot_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('home'))
+        
+    slot = Slot.query.get_or_404(slot_id)
+    examiners = User.query.filter_by(role='examiner', is_approved=True).all()
+    
+    if request.method == 'POST':
+        slot.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
+        slot.start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
+        slot.end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
+        slot.capacity = int(request.form.get('capacity'))
+        slot.examiner_id = int(request.form.get('examiner_id'))
+        db.session.commit()
+        flash('Slot updated successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('edit_slot.html', slot=slot, examiners=examiners, role='admin')
+
+
+
+# admin route for deleting an existing slot
+@app.route('/admin/slot/<int:slot_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_slot(slot_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('home'))
+        
+    slot = Slot.query.get_or_404(slot_id)
+    if slot.bookings:
+        flash('Cannot delete slot because students have already booked it.', 'warning')
+        return redirect(url_for('admin_dashboard'))
+        
+    db.session.delete(slot)
+    db.session.commit()
+    flash('Slot deleted successfully.', 'info')
+    return redirect(url_for('admin_dashboard'))
+
 # 3. Manage Examination Rubrics
 
 # rubric criteria 
@@ -603,6 +645,35 @@ def examiner_create_slot(exam_id):
         
     return render_template('examiner_create_slot.html', exam=exam)
 
+
+#examiner slot editing route
+@app.route('/examiner/slot/<int:slot_id>/edit', methods=['GET', 'POST'])
+@login_required
+def examiner_edit_slot(slot_id):
+    if current_user.role != 'examiner':
+        return redirect(url_for('home'))
+        
+    slot = Slot.query.get_or_404(slot_id)
+    
+    if slot.examiner_id != current_user.id:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('examiner_dashboard'))
+        
+    now = datetime.now()
+    if now >= slot.examination.slot_booking_start:
+        flash('Cannot edit slot after student booking has started.', 'danger')
+        return redirect(url_for('examiner_dashboard'))
+        
+    if request.method == 'POST':
+        slot.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
+        slot.start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
+        slot.end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
+        slot.capacity = int(request.form.get('capacity'))
+        db.session.commit()
+        flash('Slot updated successfully!', 'success')
+        return redirect(url_for('examiner_dashboard'))
+        
+    return render_template('edit_slot.html', slot=slot, role='examiner')
 
 
 # examiner slot deletion route 

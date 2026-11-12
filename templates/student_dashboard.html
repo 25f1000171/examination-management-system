@@ -40,7 +40,7 @@
                     <td><span class="badge bg-info text-dark">{{ s.capacity }} / {{ s.total_seats }}</span></td>
                     <td>
                         <form action="{{ url_for('book_slot', slot_id=s.id) }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you want to book this slot ?')">Book Slot</button>
+                            <button type="submit" class="btn btn-sm btn-success" onclick="return">Book Slot</button>
                         </form>
                     </td>
                 </tr>
@@ -86,7 +86,7 @@
                             
                             <!-- Cancel Button Form -->
                             <form action="{{ url_for('cancel_booking', booking_id=b.id) }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-danger ms-1" onclick="return confirm('Are you want to cancel this slots?')">Cancel</button>
+                                <button type="submit" class="btn btn-sm btn-danger ms-1" onclick="return">Cancel</button>
                             </form>
                         {% endif %}
                     </td>

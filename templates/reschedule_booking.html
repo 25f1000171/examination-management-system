@@ -17,9 +17,9 @@
                 <!-- Form 1: Reschedule Student to Another Slot -->
                 <form method="POST" class="mb-4">
                     <input type="hidden" name="action_type" value="reschedule_slot">
-                    <h6 class="fw-bold">Option 1: Reschedule Booking to Another Slot</h6>
+                    <h6 class="fw-bold">Change Assigned Examner</h6>
                     <div class="mb-3">
-                        <label class="form-label">Select New Slot</label>
+                        <label class="form-label">Select New Examiner</label>
                         <select name="new_slot_id" class="form-select" required>
                             {% for s in available_slots %}
                                 <option value="{{ s.id }}" {% if s.id == booking.slot_id %}selected{% endif %}>
@@ -31,7 +31,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary">Reschedule Student Slot</button>
+                    <button type="submit" class="btn btn-primary">Change</button>
                 </form>
 
                 <hr>
@@ -39,9 +39,9 @@
                 <!-- Form 2: Reassign Examiner for Current Slot -->
                 <form method="POST">
                     <input type="hidden" name="action_type" value="change_examiner">
-                    <h6 class="fw-bold">Option 2: Change Assigned Examiner </h6>
+                    <h6 class="fw-bold">Reschedule Booking to Another Slot</h6>
                     <div class="mb-3">
-                        <label class="form-label">Select New Examiner for Slot #{{ booking.slot.id }}</label>
+                        <label class="form-label">Select New Slot {{ booking.slot.id }}</label>
                         <select name="new_examiner_id" class="form-select" required>
                             {% for ex in approved_examiners %}
                                 <option value="{{ ex.id }}" {% if ex.id == booking.slot.examiner_id %}selected{% endif %}>
@@ -53,7 +53,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-warning">Change Assigned Examiner</button>
+                    <button type="submit" class="btn btn-warning">Reschedule</button>
                 </form>
             </div>
             <div class="card-footer bg-white">

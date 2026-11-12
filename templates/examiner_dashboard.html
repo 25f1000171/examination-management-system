@@ -73,7 +73,8 @@
                         <td>{{ s.available_seats }} / {{ s.capacity }}</td>
                         <td><span class="badge bg-{{ 'success' if s.status == 'Available' else 'secondary' }}">{{ s.status }}</span></td>
                         <td class="d-flex gap-1">
-                            <a href="{{ url_for('manage_slot', id=s.id) }}" class="btn btn-sm btn-primary">View Students</a>
+                            <a href="{{ url_for('manage_slot', id=s.id) }}" class="btn btn-sm btn-primary">Students</a>
+                            <a href="{{ url_for('examiner_edit_slot', slot_id=s.id) }}" class="btn btn-sm btn-outline-warning">Edit</a>
                             <form method="POST" action="{{ url_for('examiner_delete_slot', slot_id=s.id) }}">
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                             </form>

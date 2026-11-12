@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Edit Slot{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark fw-bold">Edit Slot #{{ slot.id }}</div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="date" class="form-control" value="{{ slot.date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Time</label>
+                            <input type="time" name="start_time" class="form-control" value="{{ slot.start_time.strftime('%H:%M') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Time</label>
+                            <input type="time" name="end_time" class="form-control" value="{{ slot.end_time.strftime('%H:%M') }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Seat Capacity</label>
+                        <input type="number" name="capacity" class="form-control" value="{{ slot.capacity }}" required>
+                    </div>
+                    
+                    <!-- admin option to change examiner -->
+                    {% if role == 'admin' %}
+                    <div class="mb-4">
+                        <label class="form-label">Assign Examiner</label>
+                        <select name="examiner_id" class="form-select" required>
+                            {% for ex in examiners %}
+                            <option value="{{ ex.id }}" {% if ex.id == slot.examiner_id %}selected{% endif %}>{{ ex.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="javascript:history.back()" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-warning">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
