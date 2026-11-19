@@ -37,6 +37,22 @@ def restrict_access():
             flash('You are not authorized to access this page.', 'danger')
             return redirect(url_for('home'))
 
+    elif request.path.startswith('/examiner'):
+        if not current_user.is_authenticated:
+            flash('Login required!', 'warning')
+            return redirect(url_for('login'))
+        if current_user.role != 'examiner':
+            flash('You are not authorized to access this page.', 'danger')
+            return redirect(url_for('home'))
+
+    elif request.path.startswith('/student'):
+        if not current_user.is_authenticated:
+            flash('Login required!', 'warning')
+            return redirect(url_for('login'))
+        if current_user.role != 'student':
+            flash('You are not authorized to access this page.', 'danger')
+            return redirect(url_for('home'))
+
 
 
 
@@ -292,7 +308,6 @@ def edit_exam(id):
         exam.slot_creation_end = parse_datetime(request.form.get('slot_creation_end'))
         exam.slot_booking_start = parse_datetime(request.form.get('slot_booking_start'))
         exam.slot_booking_end = parse_datetime(request.form.get('slot_booking_end'))
-        exam.status = request.form.get('status')
         
         db.session.commit()
         flash('Examination details and timelines updated successfully.', 'success')
@@ -359,7 +374,6 @@ def create_slot(exam_id):
 
 # admin route for editing an existing slot
 @app.route('/admin/slot/<int:slot_id>/edit', methods=['GET', 'POST'])
-@login_required
 def admin_edit_slot(slot_id):
     if current_user.role != 'admin':
         return redirect(url_for('home'))
@@ -368,10 +382,19 @@ def admin_edit_slot(slot_id):
     examiners = User.query.filter_by(role='examiner', is_approved=True).all()
     
     if request.method == 'POST':
+        new_capacity = int(request.form.get('capacity'))
+        booked_count = len(slot.bookings)
+
+        if new_capacity < booked_count:
+            flash(f'Capacity cannot be less than already booked seats ({booked_count}).', 'danger')
+            return redirect(request.url)
+
         slot.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
         slot.start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
         slot.end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
-        slot.capacity = int(request.form.get('capacity'))
+        slot.capacity = new_capacity
+        slot.available_seats = new_capacity - booked_count
+        slot.status = 'Full' if slot.available_seats == 0 else 'Available'
         slot.examiner_id = int(request.form.get('examiner_id'))
         db.session.commit()
         flash('Slot updated successfully!', 'success')
@@ -383,7 +406,6 @@ def admin_edit_slot(slot_id):
 
 # admin route for deleting an existing slot
 @app.route('/admin/slot/<int:slot_id>/delete', methods=['POST'])
-@login_required
 def admin_delete_slot(slot_id):
     if current_user.role != 'admin':
         return redirect(url_for('home'))
@@ -535,7 +557,6 @@ def reschedule_booking(id):
 
 # examiner dashbord
 @app.route('/examiner/dashboard')
-@login_required
 def examiner_dashboard():
     if current_user.role != 'examiner':
         flash('Access denied!', 'danger')
@@ -576,29 +597,24 @@ def evaluate_student(booking_id):
         flash('You are not the owner of this slot.', 'danger')
         return redirect(url_for('examiner_dashboard'))
         
-    # exam marking scheme nikalna
     rubrics = Rubric.query.filter_by(exam_id=slot.exam_id).all()
     
     if request.method == 'POST':
-        total_score = 0
         remarks = request.form.get('remarks', '')
         
-        # har rubric ka score form se nikal kar total karna
-        for rubric in rubrics:
-            score = request.form.get(f'rubric_{rubric.id}', type=float)
-            if score is not None:
-                total_score += score
+        Evaluation.query.filter_by(booking_id=booking.id).delete()
         
-        # pehle se evaluation bani hui h ya nayi banani hai
-        evaluation = Evaluation.query.filter_by(booking_id=booking.id).first()
-        if not evaluation:
-            evaluation = Evaluation(booking_id=booking.id, examiner_id=current_user.id)
+        for rubric in rubrics:
+            score = request.form.get(f'rubric_{rubric.id}', type=float) or 0.0
+            evaluation = Evaluation(
+                booking_id=booking.id,
+                rubric_id=rubric.id,
+                marks_obtained=score,
+                remarks=remarks
+            )
             db.session.add(evaluation)
         
-        evaluation.marks_obtained = total_score
-        evaluation.remarks = remarks
         booking.status = 'Evaluated'
-        
         db.session.commit()
         flash('Evaluation saved successfully!', 'success')
         return redirect(url_for('manage_slot', id=slot.id))
@@ -609,7 +625,6 @@ def evaluate_student(booking_id):
 
 # examiner slot creation route
 @app.route('/examiner/exam/<int:exam_id>/create_slot', methods=['GET', 'POST'])
-@login_required
 def examiner_create_slot(exam_id):
     if current_user.role != 'examiner' or not current_user.is_approved:
         flash('Unauthorized access!', 'danger')
@@ -648,7 +663,6 @@ def examiner_create_slot(exam_id):
 
 #examiner slot editing route
 @app.route('/examiner/slot/<int:slot_id>/edit', methods=['GET', 'POST'])
-@login_required
 def examiner_edit_slot(slot_id):
     if current_user.role != 'examiner':
         return redirect(url_for('home'))
@@ -665,10 +679,19 @@ def examiner_edit_slot(slot_id):
         return redirect(url_for('examiner_dashboard'))
         
     if request.method == 'POST':
+        new_capacity = int(request.form.get('capacity'))
+        booked_count = len(slot.bookings)
+
+        if new_capacity < booked_count:
+            flash(f'Capacity cannot be less than already booked seats ({booked_count}).', 'danger')
+            return redirect(request.url)
+
         slot.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
         slot.start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
         slot.end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
-        slot.capacity = int(request.form.get('capacity'))
+        slot.capacity = new_capacity
+        slot.available_seats = new_capacity - booked_count
+        slot.status = 'Full' if slot.available_seats == 0 else 'Available'
         db.session.commit()
         flash('Slot updated successfully!', 'success')
         return redirect(url_for('examiner_dashboard'))
@@ -678,7 +701,6 @@ def examiner_edit_slot(slot_id):
 
 # examiner slot deletion route 
 @app.route('/examiner/slot/<int:slot_id>/delete', methods=['POST'])
-@login_required
 def examiner_delete_slot(slot_id):
     slot = Slot.query.get_or_404(slot_id)
     
@@ -832,8 +854,15 @@ def view_result(booking_id):
         flash('Your result is not declared.', 'warning')
         return redirect(url_for('student_dashboard'))
 
-    evaluation = Evaluation.query.filter_by(booking_id=booking.id).first()
-    return render_template('view_result.html', booking=booking, evaluation=evaluation)
+    evaluations = Evaluation.query.filter_by(booking_id=booking.id).all()
+    total_marks = sum(e.marks_obtained for e in evaluations)
+    remarks = evaluations[0].remarks if evaluations else ''
+    
+    evaluation = {
+        'marks_obtained': total_marks,
+        'remarks': remarks
+    }
+    return render_template('view_result.html', booking=booking, evaluation=evaluation, evaluations=evaluations)
 
 
 if __name__ == '__main__':
