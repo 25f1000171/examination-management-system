@@ -72,7 +72,7 @@ def init_db():
             )
             db.session.add(default_admin)
             db.session.commit()
-            
+init_db()            
 
 @app.route('/')
 def home():
@@ -866,5 +866,5 @@ def view_result(booking_id):
 
 
 if __name__ == '__main__':
-    init_db()
+    
     app.run(debug=True)
